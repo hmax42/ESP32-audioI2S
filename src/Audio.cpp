@@ -2,7 +2,7 @@
  * Audio.cpp
  *
  *  Created on: Oct 26,2018
- *  Updated on: Nov 25,2020
+ *  Updated on: Dec 08,2020
  *      Author: Wolle
  *
  *  This library plays mp3 files from SD card or icy-webstream  via I2S,
@@ -147,6 +147,8 @@ Audio::Audio(const uint8_t BCLK, const uint8_t LRC, const uint8_t DOUT) {
     m_LRC=LRC;                         // Left/Right Clock
     m_DOUT=DOUT;                       // Data Out
     setPinout(m_BCLK, m_LRC, m_DOUT, m_DIN);
+
+    m_metaline.reserve(100);           // preallocate some space #77
 }
 //---------------------------------------------------------------------------------------------------------------------
 void Audio::initInBuff(){
@@ -534,6 +536,12 @@ bool Audio::connecttospeech(String speech, String lang){
 
     String tkkFunc="";
     char ch;
+    int ii = 0;
+    do{
+        String line = clientsecure.readStringUntil('\n');
+        log_i("%s", line.c_str());
+    } while(ii>100);
+
 
     do {  // search for TKK
         tkkFunc = "";
@@ -549,8 +557,9 @@ bool Audio::connecttospeech(String speech, String lang){
         clientsecure.readBytes(&ch, 1);
         if (ch != ':') continue;
         tkkFunc += String(ch);
+        log_i("tkk=%s", tkkFunc.c_str());
     } while(tkkFunc.length() < 4);
-
+    log_i("bis hier");
     tkkFunc +=  clientsecure.readStringUntil(',');  // "TKK='xxxxxxxxx.yyyyyyyyy'"
     tkkFunc = tkkFunc.substring(5 /* length of "TKK='" */, tkkFunc.lastIndexOf('\''));
 
@@ -974,25 +983,26 @@ bool Audio::playChunk(){
     // If we've got data, try and pump it out..
     uint8_t max = 0;
     uint8_t min = 0xFF;
+    int16_t sample[2];
     if(getBitsPerSample()==8){
         if(m_channels==1){
             while(m_validSamples){
                 uint8_t x =  m_outBuff[m_curSample] & 0x00FF;
                 uint8_t y = (m_outBuff[m_curSample] & 0xFF00) >> 8;
-                m_Sample[LEFTCHANNEL]  = x;
-                m_Sample[RIGHTCHANNEL] = x;
-                if(m_Sample[LEFTCHANNEL] > max ) max = m_Sample[LEFTCHANNEL];
-                if(m_Sample[RIGHTCHANNEL] > max ) max = m_Sample[RIGHTCHANNEL];
-                if(m_Sample[LEFTCHANNEL] < min ) min = m_Sample[LEFTCHANNEL];
-                if(m_Sample[RIGHTCHANNEL] < min ) min = m_Sample[RIGHTCHANNEL];
-                while(1){if(playSample(m_Sample)) break;} // Can't send?
-                m_Sample[LEFTCHANNEL]  = y;
-                m_Sample[RIGHTCHANNEL] = y;
-                if(m_Sample[LEFTCHANNEL] > max ) max = m_Sample[LEFTCHANNEL];
-                if(m_Sample[RIGHTCHANNEL] > max ) max = m_Sample[RIGHTCHANNEL];
-                if(m_Sample[LEFTCHANNEL] < min ) min = m_Sample[LEFTCHANNEL];
-                if(m_Sample[RIGHTCHANNEL] < min ) min = m_Sample[RIGHTCHANNEL];
-                while(1){if(playSample(m_Sample)) break;} // Can't send?
+                sample[LEFTCHANNEL]  = x;
+                sample[RIGHTCHANNEL] = x;
+                if(sample[LEFTCHANNEL] > max ) max = sample[LEFTCHANNEL];
+                if(sample[RIGHTCHANNEL] > max ) max = sample[RIGHTCHANNEL];
+                if(sample[LEFTCHANNEL] < min ) min = sample[LEFTCHANNEL];
+                if(sample[RIGHTCHANNEL] < min ) min = sample[RIGHTCHANNEL];
+                while(1){if(playSample(sample)) break;} // Can't send?
+                sample[LEFTCHANNEL]  = y;
+                sample[RIGHTCHANNEL] = y;
+                if(sample[LEFTCHANNEL] > max ) max = sample[LEFTCHANNEL];
+                if(sample[RIGHTCHANNEL] > max ) max = sample[RIGHTCHANNEL];
+                if(sample[LEFTCHANNEL] < min ) min = sample[LEFTCHANNEL];
+                if(sample[RIGHTCHANNEL] < min ) min = sample[RIGHTCHANNEL];
+                while(1){if(playSample(sample)) break;} // Can't send?
                 m_validSamples--;
                 m_curSample++;
             }
@@ -1001,13 +1011,14 @@ bool Audio::playChunk(){
             while(m_validSamples){
                 uint8_t x = m_outBuff[m_curSample] & 0x00FF;
                 uint8_t y = (m_outBuff[m_curSample] & 0xFF00)>>8;
-                m_Sample[LEFTCHANNEL]  = x;
-                m_Sample[RIGHTCHANNEL] = y;
-                if(m_Sample[LEFTCHANNEL] > max ) max = m_Sample[LEFTCHANNEL];
-                if(m_Sample[RIGHTCHANNEL] > max ) max = m_Sample[RIGHTCHANNEL];
-                if(m_Sample[LEFTCHANNEL] < min ) min = m_Sample[LEFTCHANNEL];
-                if(m_Sample[RIGHTCHANNEL] < min ) min = m_Sample[RIGHTCHANNEL];
-                while(1){if(playSample(m_Sample)) break;} // Can't send?
+
+                sample[LEFTCHANNEL]  = x;
+                sample[RIGHTCHANNEL] = y;
+                if(sample[LEFTCHANNEL] > max ) max = sample[LEFTCHANNEL];
+                if(sample[RIGHTCHANNEL] > max ) max = sample[RIGHTCHANNEL];
+                if(sample[LEFTCHANNEL] < min ) min = sample[LEFTCHANNEL];
+                if(sample[RIGHTCHANNEL] < min ) min = sample[RIGHTCHANNEL];
+                while(1){if(playSample(sample)) break;} // Can't send?
                 m_validSamples--;
                 m_curSample++;
             }
@@ -1019,26 +1030,26 @@ bool Audio::playChunk(){
     if(getBitsPerSample()==16){
         if(m_channels==1){
             while (m_validSamples) {
-                m_Sample[LEFTCHANNEL]  = m_outBuff[m_curSample];
-                m_Sample[RIGHTCHANNEL] = m_outBuff[m_curSample];
-                if(m_Sample[LEFTCHANNEL] > max ) max = m_Sample[LEFTCHANNEL];
-                if(m_Sample[RIGHTCHANNEL] > max ) max = m_Sample[RIGHTCHANNEL];
-                if(m_Sample[LEFTCHANNEL] < min ) min = m_Sample[LEFTCHANNEL];
-                if(m_Sample[RIGHTCHANNEL] < min ) min = m_Sample[RIGHTCHANNEL];
-                if (!playSample(m_Sample)) {return false;} // Can't send
+                sample[LEFTCHANNEL]  = m_outBuff[m_curSample];
+                sample[RIGHTCHANNEL] = m_outBuff[m_curSample];
+                if(sample[LEFTCHANNEL] > max ) max = sample[LEFTCHANNEL];
+                if(sample[RIGHTCHANNEL] > max ) max = sample[RIGHTCHANNEL];
+                if(sample[LEFTCHANNEL] < min ) min = sample[LEFTCHANNEL];
+                if(sample[RIGHTCHANNEL] < min ) min = sample[RIGHTCHANNEL];
+                 if (!playSample(sample)) {return false;} // Can't send
                 m_validSamples--;
                 m_curSample++;
             }
         }
         if(m_channels==2){
             while (m_validSamples) {
-                m_Sample[LEFTCHANNEL]  = m_outBuff[m_curSample * 2];
-                m_Sample[RIGHTCHANNEL] = m_outBuff[m_curSample * 2 + 1];
-                if(m_Sample[LEFTCHANNEL] > max ) max = m_Sample[LEFTCHANNEL];
-                if(m_Sample[RIGHTCHANNEL] > max ) max = m_Sample[RIGHTCHANNEL];
-                if(m_Sample[LEFTCHANNEL] < min ) min = m_Sample[LEFTCHANNEL];
-                if(m_Sample[RIGHTCHANNEL] < min ) min = m_Sample[RIGHTCHANNEL];
-                if (!playSample(m_Sample)) {return false;} // Can't send
+                sample[LEFTCHANNEL]  = m_outBuff[m_curSample * 2];
+                sample[RIGHTCHANNEL] = m_outBuff[m_curSample * 2 + 1];
+                if(sample[LEFTCHANNEL] > max ) max = sample[LEFTCHANNEL];
+                if(sample[RIGHTCHANNEL] > max ) max = sample[RIGHTCHANNEL];
+                if(sample[LEFTCHANNEL] < min ) min = sample[LEFTCHANNEL];
+                if(sample[RIGHTCHANNEL] < min ) min = sample[RIGHTCHANNEL];
+                if (!playSample(sample)) {return false;} // Can't send
                 m_validSamples--;
                 m_curSample++;
             }
@@ -1430,7 +1441,7 @@ void Audio::handlebyte(uint8_t b){
                     //log_i("%s",lcml.c_str());
                     m_contentlength= m_metaline.substring(15).toInt();
                     m_f_webfile=true; // Stream comes from a fileserver
-                    sprintf(chbuf, "Contnent-Length: %i", m_contentlength);
+                    sprintf(chbuf, "Content-Length: %i", m_contentlength);
                     if(audio_info) audio_info(chbuf);
                 }
                 else if(lcml.startsWith("transfer-encoding:")){ // Station provides chunked transfer
@@ -1479,7 +1490,7 @@ void Audio::handlebyte(uint8_t b){
                     if(idx>0) lasthost=lasthost.substring(0, idx);
                     if(audio_lasthost) audio_lasthost(lasthost.c_str());
                 }
-                delay(1000);
+                delay(50);  // #77
             }
         }
         else{
