@@ -938,8 +938,6 @@ bool Audio::pauseResume()
     return retVal;
 }
 
-//uint8_t power = 0;
-
 uint8_t Audio::getPowerLevel() {
     return power;
 }

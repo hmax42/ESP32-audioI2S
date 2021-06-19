@@ -97,7 +97,7 @@ protected:
 };
 //----------------------------------------------------------------------------------------------------------------------
 
-class Audio : public AudioBuffer{
+class Audio : private AudioBuffer{
 
     AudioBuffer InBuff; // instance of input buffer
 
@@ -115,7 +115,6 @@ public:
     uint32_t getSampleRate();
     uint8_t  getBitsPerSample();
     uint8_t  getChannels();
-//    AudioBuffer getBuffer() {return InBuff;}
 
     /**
      * @brief Get the audio file duration in seconds
