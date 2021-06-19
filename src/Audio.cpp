@@ -898,6 +898,7 @@ void Audio::stopSong(){
     }
     memset(m_outBuff, 0, sizeof(m_outBuff));     //Clear OutputBuffer
     i2s_zero_dma_buffer((i2s_port_t)m_i2s_num);
+    power = 0;
 }
 //---------------------------------------------------------------------------------------------------------------------
 bool Audio::playI2Sremains(){ // returns true if all dma_buffs flushed
@@ -936,9 +937,18 @@ bool Audio::pauseResume()
     }
     return retVal;
 }
+
+//uint8_t power = 0;
+
+uint8_t Audio::getPowerLevel() {
+    return power;
+}
+
 //---------------------------------------------------------------------------------------------------------------------
 bool Audio::playChunk(){
     // If we've got data, try and pump it out..
+    uint8_t max = 0;
+    uint8_t min = 0xFF;
     if(getBitsPerSample()==8){
         if(m_channels==1){
             while(m_validSamples){
@@ -946,9 +956,17 @@ bool Audio::playChunk(){
                 uint8_t y = (m_outBuff[m_curSample] & 0xFF00) >> 8;
                 m_Sample[LEFTCHANNEL]  = x;
                 m_Sample[RIGHTCHANNEL] = x;
+                if(m_Sample[LEFTCHANNEL] > max ) max = m_Sample[LEFTCHANNEL];
+                if(m_Sample[RIGHTCHANNEL] > max ) max = m_Sample[RIGHTCHANNEL];
+                if(m_Sample[LEFTCHANNEL] < min ) min = m_Sample[LEFTCHANNEL];
+                if(m_Sample[RIGHTCHANNEL] < min ) min = m_Sample[RIGHTCHANNEL];
                 while(1){if(playSample(m_Sample)) break;} // Can't send?
                 m_Sample[LEFTCHANNEL]  = y;
                 m_Sample[RIGHTCHANNEL] = y;
+                if(m_Sample[LEFTCHANNEL] > max ) max = m_Sample[LEFTCHANNEL];
+                if(m_Sample[RIGHTCHANNEL] > max ) max = m_Sample[RIGHTCHANNEL];
+                if(m_Sample[LEFTCHANNEL] < min ) min = m_Sample[LEFTCHANNEL];
+                if(m_Sample[RIGHTCHANNEL] < min ) min = m_Sample[RIGHTCHANNEL];
                 while(1){if(playSample(m_Sample)) break;} // Can't send?
                 m_validSamples--;
                 m_curSample++;
@@ -960,12 +978,17 @@ bool Audio::playChunk(){
                 uint8_t y = (m_outBuff[m_curSample] & 0xFF00)>>8;
                 m_Sample[LEFTCHANNEL]  = x;
                 m_Sample[RIGHTCHANNEL] = y;
+                if(m_Sample[LEFTCHANNEL] > max ) max = m_Sample[LEFTCHANNEL];
+                if(m_Sample[RIGHTCHANNEL] > max ) max = m_Sample[RIGHTCHANNEL];
+                if(m_Sample[LEFTCHANNEL] < min ) min = m_Sample[LEFTCHANNEL];
+                if(m_Sample[RIGHTCHANNEL] < min ) min = m_Sample[RIGHTCHANNEL];
                 while(1){if(playSample(m_Sample)) break;} // Can't send?
                 m_validSamples--;
                 m_curSample++;
             }
         }
        m_curSample=0;
+       power = max - min;
        return true;
     }
     if(getBitsPerSample()==16){
@@ -973,6 +996,10 @@ bool Audio::playChunk(){
             while (m_validSamples) {
                 m_Sample[LEFTCHANNEL]  = m_outBuff[m_curSample];
                 m_Sample[RIGHTCHANNEL] = m_outBuff[m_curSample];
+                if(m_Sample[LEFTCHANNEL] > max ) max = m_Sample[LEFTCHANNEL];
+                if(m_Sample[RIGHTCHANNEL] > max ) max = m_Sample[RIGHTCHANNEL];
+                if(m_Sample[LEFTCHANNEL] < min ) min = m_Sample[LEFTCHANNEL];
+                if(m_Sample[RIGHTCHANNEL] < min ) min = m_Sample[RIGHTCHANNEL];
                 if (!playSample(m_Sample)) {return false;} // Can't send
                 m_validSamples--;
                 m_curSample++;
@@ -982,12 +1009,17 @@ bool Audio::playChunk(){
             while (m_validSamples) {
                 m_Sample[LEFTCHANNEL]  = m_outBuff[m_curSample * 2];
                 m_Sample[RIGHTCHANNEL] = m_outBuff[m_curSample * 2 + 1];
+                if(m_Sample[LEFTCHANNEL] > max ) max = m_Sample[LEFTCHANNEL];
+                if(m_Sample[RIGHTCHANNEL] > max ) max = m_Sample[RIGHTCHANNEL];
+                if(m_Sample[LEFTCHANNEL] < min ) min = m_Sample[LEFTCHANNEL];
+                if(m_Sample[RIGHTCHANNEL] < min ) min = m_Sample[RIGHTCHANNEL];
                 if (!playSample(m_Sample)) {return false;} // Can't send
                 m_validSamples--;
                 m_curSample++;
             }
         }
         m_curSample=0;
+        power = max - min;
         return true;
     }
     log_e("BitsPer Sample must be 8 or 16!");

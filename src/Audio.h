@@ -97,7 +97,7 @@ protected:
 };
 //----------------------------------------------------------------------------------------------------------------------
 
-class Audio : private AudioBuffer{
+class Audio : public AudioBuffer{
 
     AudioBuffer InBuff; // instance of input buffer
 
@@ -109,11 +109,13 @@ public:
     bool connecttohost(String host);
     bool connecttospeech(String speech, String lang);
     void loop();
+    uint8_t getPowerLevel();
     uint32_t getFileSize();
     uint32_t getFilePos();
     uint32_t getSampleRate();
     uint8_t  getBitsPerSample();
     uint8_t  getChannels();
+//    AudioBuffer getBuffer() {return InBuff;}
 
     /**
      * @brief Get the audio file duration in seconds
@@ -265,6 +267,7 @@ private:
     size_t          m_i2s_bytesWritten=0;           // set in i2s_write() but not used
     uint32_t        m_audioFileDuration=0;
     float           m_audioCurrentTime=0;
+    uint8_t          power = 0;
 };
 
 #endif /* AUDIO_H_ */
