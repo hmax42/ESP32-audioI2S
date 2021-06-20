@@ -984,8 +984,8 @@ uint8_t Audio::getPowerLevel() {
 //---------------------------------------------------------------------------------------------------------------------
 bool Audio::playChunk() {
     // If we've got data, try and pump it out..
-    uint8_t max = 0;
-    uint8_t min = 0xFF;
+    uint8_t maxPower = 0;
+    uint8_t minPower = 0xFF;
     int16_t sample[2];
     if(getBitsPerSample() == 8) {
         if(m_channels == 1) {
@@ -994,19 +994,19 @@ bool Audio::playChunk() {
                 uint8_t y = (m_outBuff[m_curSample] & 0xFF00) >> 8;
                 sample[LEFTCHANNEL]  = x;
                 sample[RIGHTCHANNEL] = x;
-                if(sample[LEFTCHANNEL] > max ) max = sample[LEFTCHANNEL];
-                if(sample[RIGHTCHANNEL] > max ) max = sample[RIGHTCHANNEL];
-                if(sample[LEFTCHANNEL] < min ) min = sample[LEFTCHANNEL];
-                if(sample[RIGHTCHANNEL] < min ) min = sample[RIGHTCHANNEL];
+                if(sample[LEFTCHANNEL] > maxPower ) maxPower = sample[LEFTCHANNEL];
+                if(sample[RIGHTCHANNEL] > maxPower ) maxPower = sample[RIGHTCHANNEL];
+                if(sample[LEFTCHANNEL] < minPower ) minPower = sample[LEFTCHANNEL];
+                if(sample[RIGHTCHANNEL] < minPower ) minPower = sample[RIGHTCHANNEL];
                  while(1) {
                     if(playSample(sample)) break;
                 } // Can't send?
                 sample[LEFTCHANNEL]  = y;
                 sample[RIGHTCHANNEL] = y;
-                if(sample[LEFTCHANNEL] > max ) max = sample[LEFTCHANNEL];
-                if(sample[RIGHTCHANNEL] > max ) max = sample[RIGHTCHANNEL];
-                if(sample[LEFTCHANNEL] < min ) min = sample[LEFTCHANNEL];
-                if(sample[RIGHTCHANNEL] < min ) min = sample[RIGHTCHANNEL];
+                if(sample[LEFTCHANNEL] > maxPower ) maxPower = sample[LEFTCHANNEL];
+                if(sample[RIGHTCHANNEL] > maxPower ) maxPower = sample[RIGHTCHANNEL];
+                if(sample[LEFTCHANNEL] < minPower ) minPower = sample[LEFTCHANNEL];
+                if(sample[RIGHTCHANNEL] < minPower ) minPower = sample[RIGHTCHANNEL];
                  while(1) {
                     if(playSample(sample)) break;
                 } // Can't send?
@@ -1020,10 +1020,10 @@ bool Audio::playChunk() {
                 uint8_t y = (m_outBuff[m_curSample] & 0xFF00) >> 8;
                 sample[LEFTCHANNEL]  = x;
                 sample[RIGHTCHANNEL] = y;
-                if(sample[LEFTCHANNEL] > max ) max = sample[LEFTCHANNEL];
-                if(sample[RIGHTCHANNEL] > max ) max = sample[RIGHTCHANNEL];
-                if(sample[LEFTCHANNEL] < min ) min = sample[LEFTCHANNEL];
-                if(sample[RIGHTCHANNEL] < min ) min = sample[RIGHTCHANNEL];
+                if(sample[LEFTCHANNEL] > maxPower ) maxPower = sample[LEFTCHANNEL];
+                if(sample[RIGHTCHANNEL] > maxPower ) maxPower = sample[RIGHTCHANNEL];
+                if(sample[LEFTCHANNEL] < minPower ) minPower = sample[LEFTCHANNEL];
+                if(sample[RIGHTCHANNEL] < minPower ) minPower = sample[RIGHTCHANNEL];
                  while(1) {
                     if(playSample(sample)) break;
                 } // Can't send?
@@ -1032,7 +1032,7 @@ bool Audio::playChunk() {
             }
         }
         m_curSample = 0;
-        power = max - min;
+        power = maxPower - minPower;
         return true;
     }
     if(getBitsPerSample() == 16) {
@@ -1040,10 +1040,10 @@ bool Audio::playChunk() {
             while(m_validSamples) {
                 sample[LEFTCHANNEL]  = m_outBuff[m_curSample];
                 sample[RIGHTCHANNEL] = m_outBuff[m_curSample];
-                if(sample[LEFTCHANNEL] > max ) max = sample[LEFTCHANNEL];
-                if(sample[RIGHTCHANNEL] > max ) max = sample[RIGHTCHANNEL];
-                if(sample[LEFTCHANNEL] < min ) min = sample[LEFTCHANNEL];
-                if(sample[RIGHTCHANNEL] < min ) min = sample[RIGHTCHANNEL];
+                if(sample[LEFTCHANNEL] > maxPower ) maxPower = sample[LEFTCHANNEL];
+                if(sample[RIGHTCHANNEL] > maxPower ) maxPower = sample[RIGHTCHANNEL];
+                if(sample[LEFTCHANNEL] < minPower ) minPower = sample[LEFTCHANNEL];
+                if(sample[RIGHTCHANNEL] < minPower ) minPower = sample[RIGHTCHANNEL];
                  if(!playSample(sample)) {
                     return false;
                 } // Can't send
@@ -1055,10 +1055,10 @@ bool Audio::playChunk() {
             while(m_validSamples) {
                 sample[LEFTCHANNEL]  = m_outBuff[m_curSample * 2];
                 sample[RIGHTCHANNEL] = m_outBuff[m_curSample * 2 + 1];
-                if(sample[LEFTCHANNEL] > max ) max = sample[LEFTCHANNEL];
-                if(sample[RIGHTCHANNEL] > max ) max = sample[RIGHTCHANNEL];
-                if(sample[LEFTCHANNEL] < min ) min = sample[LEFTCHANNEL];
-                if(sample[RIGHTCHANNEL] < min ) min = sample[RIGHTCHANNEL];
+                if(sample[LEFTCHANNEL] > maxPower ) maxPower = sample[LEFTCHANNEL];
+                if(sample[RIGHTCHANNEL] > maxPower ) maxPower = sample[RIGHTCHANNEL];
+                if(sample[LEFTCHANNEL] < minPower ) minPower = sample[LEFTCHANNEL];
+                if(sample[RIGHTCHANNEL] < minPower ) minPower = sample[RIGHTCHANNEL];
                  if(!playSample(sample)) {
                     return false;
                 } // Can't send
@@ -1067,7 +1067,7 @@ bool Audio::playChunk() {
             }
         }
         m_curSample = 0;
-        power = max - min;
+        power = maxPower - minPower;
         return true;
     }
     log_e("BitsPer Sample must be 8 or 16!");
